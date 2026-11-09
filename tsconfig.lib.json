@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "src/layer",
+    "outDir": "dist-lib"
+  },
+  "include": ["src/layer/index.ts"],
+  "exclude": ["**/*.test.ts"]
+}
