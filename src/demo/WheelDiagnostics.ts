@@ -29,7 +29,7 @@ export class WheelDiagnostics {
     this.settings = structuredClone(settings); this.enabled = true;
     this.container = this.view.container ?? undefined;
     this.container?.addEventListener("wheel", this.onNative, { capture: true, passive: true });
-    console.info(`[wheel] Captura «${this.label}» iniciada. Usa un solo dispositivo y termina con stopDiagnostics().`);
+    console.info(`[wheel] Capture “${this.label}” started. Use one device and finish with stopDiagnostics().`);
   }
 
   private onNative = (event: WheelEvent): void => { this.record(event); };
@@ -69,7 +69,7 @@ export class WheelDiagnostics {
       settings: this.settings, summary: { inputEvents: this.records.length, animatedFrames: this.frames.length, decisions },
       truncated: this.truncated, events: this.records.map(r => ({ ...r })), frames: [...this.frames], stops: [...this.stops],
     };
-    console.info("[wheel] Resumen", report.summary);
+    console.info("[wheel] Summary", report.summary);
     console.table(report.events.slice(0, 60), ["id", "dtMs", "deltaY", "deltaMode", "sdkDeltaY", "decision", "zoomBefore", "targetZoom"]);
     return report;
   }

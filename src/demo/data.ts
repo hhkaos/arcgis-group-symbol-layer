@@ -1,4 +1,5 @@
 import type { GroupItem, SymbolGroup } from "../layer/model";
+import { t } from "./i18n";
 
 export interface CommunityProperties {
   id: number;
@@ -64,7 +65,7 @@ export function groupCommunities(data: CommunityCollection, level: Grouping, ima
 }
 
 export function communityItem(p: CommunityProperties): GroupItem {
-  return { id: p.sourceId, sourceId: p.sourceId, label: p.name, category: p.communityType || "unknown", image: p.imageUrl, imageFit: "contain", url: p.communityUrl, description: [p.location, p.shortDescription || p.topics, p.status, ...p.tags].filter(Boolean).join(" · ") };
+  return { id: p.sourceId, sourceId: p.sourceId, label: p.name, category: p.communityType || "unknown", image: p.imageUrl, imageFit: "contain", url: p.communityUrl, description: [p.location, p.shortDescription || p.topics, ...p.tags].filter(Boolean).join(" · ") };
 }
 
 export function resolveLevel(mode: "auto" | Grouping, zoom: number, previous: Grouping = "region"): Grouping {
@@ -77,17 +78,17 @@ const asset = (name: string) => `${import.meta.env.BASE_URL}images/${name}.svg`;
 export function referenceGroups(): SymbolGroup[] {
   const sizes = [0, 1, 3, 6, 7, 24, 7, 7];
   return sizes.map((size, index) => ({
-    id: `reference:${index}`, label: index >= 6 ? `Solapamiento ${index - 5}` : `${size} elementos`,
+    id: `reference:${index}`, label: index >= 6 ? t("Overlap {count}", { count: index - 5 }) : t("{count} items", { count: size }),
     territoryId: `reference:${index % 2}`,
     anchor: { x: index >= 6 ? -1 : -8 + (index % 3) * 4, y: index >= 6 ? 36 : 43 - Math.floor(index / 3) * 4, wkid: 4326 },
     variant: index === 2 || index === 5 ? "dots" : "images",
     items: Array.from({ length: size }, (_, i) => ({
       id: `item:${i}`, sourceId: `reference:${index}:${i}`,
-      label: `${index === 5 ? "Persona" : "Comunidad"} ${i + 1}`,
+      label: t(index === 5 ? "Person {count}" : "Community {count}", { count: i + 1 }),
       category: i === 2 ? "unknown" : ["tech-meetup", "hacklab", "conference"][i % 3],
       image: i === 4 ? undefined : i === 3 ? asset("missing") : asset(i % 3 === 0 ? "wide" : i % 3 === 1 ? "tall" : "portrait"),
       imageFit: i % 3 === 2 ? "cover" : "contain",
-      description: "Ejemplo ficticio local. Prueba de identidad, orden, categorías, imágenes y accesibilidad.",
+      description: t("Fictional local example. Tests identity, ordering, categories, images, and accessibility."),
     })),
   }));
 }
@@ -97,10 +98,10 @@ export function stressGroups(): SymbolGroup[] {
   return Array.from({ length: 470 }, (_, index) => {
     const count = index < 6 ? sizes[index] : index < 320 ? 3 : 2;
     return {
-      id: `stress:${index}`, label: `Grupo de prueba ${index + 1}`, territoryId: `stress:${index % 19}`,
+      id: `stress:${index}`, label: t("Test group {count}", { count: index + 1 }), territoryId: `stress:${index % 19}`,
       anchor: { x: -8.8 + ((index * 37) % 131) / 10, y: 36.1 + ((index * 23) % 76) / 10, wkid: 4326 },
       variant: index % 2 === 0 ? "dots" : "images",
-      items: Array.from({ length: count }, (_, i) => ({ id: `item:${i}`, label: `Elemento ${index + 1}.${i + 1}`, category: i % 2 ? "hacklab" : "tech-meetup", image: asset(i % 2 ? "tall" : "wide"), imageFit: "contain" })),
+      items: Array.from({ length: count }, (_, i) => ({ id: `item:${i}`, label: t("Item {count}", { count: `${index + 1}.${i + 1}` }), category: i % 2 ? "hacklab" : "tech-meetup", image: asset(i % 2 ? "tall" : "wide"), imageFit: "contain" })),
     };
   });
 }

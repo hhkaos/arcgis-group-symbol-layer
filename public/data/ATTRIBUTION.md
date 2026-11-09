@@ -1,6 +1,6 @@
 # Data attribution
 
-Community records: **Community Builders**, [Directorio de comunidades tecnológicas de España](https://directory.communitybuilders.dev/), [source repository](https://github.com/ComBuildersES/communities-directory). Data in `public/data/` of the source repository is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), as stated in its [DATA_LICENSE.md](https://github.com/ComBuildersES/communities-directory/blob/master/DATA_LICENSE.md).
+Community records: **Community Builders**, [Directory of Spanish tech communities](https://directory.communitybuilders.dev/), [source repository](https://github.com/ComBuildersES/communities-directory). Data in `public/data/` of the source repository is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), as stated in its [DATA_LICENSE.md](https://github.com/ComBuildersES/communities-directory/blob/master/DATA_LICENSE.md).
 
 Snapshot retrieved 2026-11-09 from https://directory.communitybuilders.dev/data/communities.json. Changes: GeoJSON conversion, absolute image URLs, source identity strings, and territorial membership from point-in-polygon queries to the user-supplied administrative layers. Source descriptions and status are historical directory data, not independently verified claims.
 

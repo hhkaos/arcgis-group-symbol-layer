@@ -1,79 +1,53 @@
 <!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#173d46" />
-    <meta name="description" content="Explora las comunidades tecnológicas de España en un mapa de grupos interactivos." />
-    <title>Conecta · Comunidades tecnológicas</title>
-    <link rel="icon" type="image/svg+xml" href="/images/wide.svg" />
-  </head>
-  <body>
-    <a class="skip-link" href="#explore">Saltar a los resultados</a>
-    <calcite-shell>
-      <header slot="header" class="masthead">
-        <div class="brand"><span class="brand-mark" aria-hidden="true">c<span>·</span></span><div><strong>conecta</strong><span class="brand-caption">EL MAPA DE LAS COMUNIDADES TECH</span></div></div>
-        <div class="header-note">Personas cerca. Ideas en común.</div>
-        <calcite-button id="home" appearance="outline" scale="s" icon-start="extent">Ver España</calcite-button>
-      </header>
-      <div class="workspace">
-        <aside class="sidebar" aria-label="Explorar comunidades">
-          <div class="intro"><p class="eyebrow">EL ECOSISTEMA, A UN VISTAZO</p><h1>Encuentra tu<br/> <em>comunidad.</em></h1><p>Descubre quién comparte tus intereses.<br/> Explora el mapa o busca en el directorio.</p></div>
-          <div class="filters">
-            <calcite-label>Buscar comunidad o tema<calcite-input id="search" type="search" placeholder="Nombre, ciudad, tecnología…" clearable icon="search"></calcite-input></calcite-label>
-            <div class="filter-grid">
-              <calcite-label>Tipo<calcite-select id="category"><calcite-option value="">Todos los tipos</calcite-option></calcite-select></calcite-label>
-              <calcite-label>Estado<calcite-select id="status"><calcite-option value="">Todos</calcite-option><calcite-option value="active" selected>Activas</calcite-option><calcite-option value="inactive">Inactivas</calcite-option><calcite-option value="unknown">Sin confirmar</calcite-option></calcite-select></calcite-label>
-            </div>
-            <calcite-label>Territorio destacado<calcite-select id="territory"><calcite-option value="">Toda España</calcite-option></calcite-select></calcite-label>
-          </div>
-          <section id="explore" class="directory" tabindex="-1" aria-labelledby="results-heading">
-            <div class="section-heading"><h2 id="results-heading">Directorio</h2><span id="result-count" class="count-pill">—</span></div>
-            <calcite-label layout="inline"><calcite-switch id="visible-results" checked></calcite-switch>Solo el área visible</calcite-label>
-            <p id="result-context" class="muted" role="status" aria-live="polite">Cargando comunidades…</p>
-            <calcite-label>Grupo para inspeccionar<calcite-select id="group"><calcite-option value="">Todos los grupos</calcite-option></calcite-select></calcite-label>
-            <div id="results" class="results" role="group" aria-label="Resultados del directorio"></div>
-            <div class="pagination"><calcite-button id="previous" appearance="transparent" scale="s">Anterior</calcite-button><span id="page-info"></span><calcite-button id="next" appearance="transparent" scale="s">Siguiente</calcite-button></div>
-          </section>
-          <footer class="sidebar-footer">
-            Datos: <a href="https://directory.communitybuilders.dev/" target="_blank" rel="noopener noreferrer">Community Builders</a> · CC BY 4.0<br/>
-            Límites: © Instituto Geográfico Nacional de España · Living Atlas<br/>
-            <a href="./data/ATTRIBUTION.md" target="_blank" rel="noopener noreferrer">Fuentes y condiciones de uso</a>
-            <p>Código creado con IA mediante OpenAI Codex. Visualización inspirada en <a href="https://github.com/patrickarlt/pftp-who-is-running-2020" target="_blank" rel="noopener noreferrer">People For the People (2020)</a>, de Patrick Arlt. <a href="https://www.youtube.com/watch?v=0AlQItdHBy4&amp;t=1184s" target="_blank" rel="noopener noreferrer">Ver grabación desde 19:44</a>.</p>
-          </footer>
-        </aside>
-        <main class="map-workspace" aria-label="Mapa de comunidades">
-          <div class="map-toolbar"><div><span class="live-dot"></span><strong id="level-label">Por comunidad autónoma</strong><span id="map-count">Preparando mapa</span></div><calcite-button id="settings-toggle" appearance="transparent" scale="s" icon-start="sliders-horizontal" aria-expanded="false">Opciones</calcite-button></div>
-          <div class="map-frame">
-            <arcgis-map id="map" center="-4,39.5" zoom="5.5"><arcgis-zoom slot="top-left"></arcgis-zoom><arcgis-compass slot="top-left"></arcgis-compass></arcgis-map>
-            <div id="map-notice" class="map-notice" role="status" hidden></div>
-            <div id="settings" class="settings-card" hidden>
-              <h2>Opciones del mapa</h2>
-              <calcite-label>Datos<calcite-select id="dataset"><calcite-option value="communities">Comunidades de España</calcite-option><calcite-option value="reference">Casos de referencia</calcite-option><calcite-option value="stress">Prueba · 470 grupos / 1.283 elementos</calcite-option></calcite-select></calcite-label>
-              <calcite-label>Agrupar por<calcite-select id="grouping"><calcite-option value="auto">Automático según zoom</calcite-option><calcite-option value="region">Comunidad autónoma</calcite-option><calcite-option value="locality">Localidad</calcite-option></calcite-select></calcite-label>
-              <calcite-label>Límites administrativos<calcite-select id="boundaries"><calcite-option value="auto">Automáticos según zoom</calcite-option><calcite-option value="regions">Comunidades autónomas</calcite-option><calcite-option value="provinces">Provincias</calcite-option><calcite-option value="municipalities">Municipios</calcite-option><calcite-option value="none">Ocultar límites</calcite-option></calcite-select></calcite-label>
-              <p id="boundary-hint" class="muted"></p>
-              <calcite-label>Al pulsar un límite<calcite-select id="boundary-click" label="Acción al pulsar un límite"><calcite-option value="none">Ninguna acción</calcite-option><calcite-option value="inspect">Consultar nombre</calcite-option><calcite-option value="select">Destacar territorio</calcite-option></calcite-select></calcite-label>
-              <calcite-label layout="inline"><calcite-switch id="boundary-names"></calcite-switch>Nombres sobre el mapa</calcite-label>
-              <calcite-label layout="inline"><calcite-switch id="smooth-wheel" checked></calcite-switch>Suavizar rueda del ratón</calcite-label>
-              <calcite-label>Dispositivo de zoom<calcite-select id="wheel-input" label="Dispositivo de zoom"><calcite-option value="auto">Detección automática</calcite-option><calcite-option value="mouse">Ratón · suavizado</calcite-option><calcite-option value="trackpad">Trackpad · nativo</calcite-option></calcite-select></calcite-label>
-              <calcite-label>Representación<calcite-select id="variant"><calcite-option value="mixed">Adaptativa / perfil del ejemplo</calcite-option><calcite-option value="images">Imágenes</calcite-option><calcite-option value="dots">Puntos</calcite-option></calcite-select></calcite-label>
-              <calcite-label layout="inline"><calcite-switch id="visibility" checked></calcite-switch>Mostrar capa</calcite-label>
-              <calcite-label>Opacidad<calcite-slider id="opacity" min="0" max="100" value="100" label="Opacidad de la capa" label-handles></calcite-slider></calcite-label>
-              <calcite-button id="reattach" appearance="outline" width="full" scale="s">Retirar y volver a añadir capa</calcite-button>
-              <calcite-button id="reset" appearance="transparent" width="full" scale="s">Limpiar filtros y selección</calcite-button>
-              <p class="muted">El zoom cambia el nivel territorial. Los filtros se mantienen.</p>
-            </div>
-            <div id="place-info" class="place-info" role="status" hidden></div>
-            <span id="map-tooltip-anchor" class="map-tooltip-anchor" aria-hidden="true"></span>
-            <calcite-tooltip id="map-tooltip" reference-element="map-tooltip-anchor" placement="top" offset-distance="18" overlay-positioning="fixed" close-on-click></calcite-tooltip>
-            <div class="map-caption"><span id="zoom-label">Zoom —</span></div>
-          </div>
-          <div class="map-footer"><span id="legend"></span><span>Los símbolos representan áreas de actividad, no sedes exactas.</span><span id="timing">Prototipo · datos estáticos</span></div>
-        </main>
-      </div>
-      <calcite-dialog id="details" slot="dialogs" heading="Detalles" placement="center" modal close-button-kind="icon"><div id="details-content" class="details-content"></div></calcite-dialog>
-    </calcite-shell>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
-</html>
+<html lang="en">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="theme-color" content="#176c65"/><title>Spain’s Tech Community Ecosystem</title><link rel="icon" type="image/svg+xml" href="/images/wide.svg"/></head>
+<body>
+<a class="skip-link" href="#explore" data-i18n="Skip to directory">Skip to directory</a>
+<calcite-shell>
+  <header slot="header" class="app-header">
+    <calcite-action id="sidebar-toggle" icon="list" text="Toggle directory" data-i18n-text="Toggle directory" aria-controls="sidebar" aria-expanded="true"></calcite-action>
+    <div class="app-identity"><h1><span data-i18n="SPAIN’S TECH COMMUNITY ECOSYSTEM">SPAIN’S TECH COMMUNITY ECOSYSTEM</span></h1><p><span data-i18n="Discover where to meet people who share your interests and curiosity">Discover where to meet people who share your interests and curiosity</span></p></div>
+    <div class="header-actions">
+      <calcite-select id="language" label="Language" data-i18n-label="Language" scale="s"><calcite-option value="en" selected>English</calcite-option><calcite-option value="es">Español</calcite-option></calcite-select>
+      <calcite-button id="settings-toggle" appearance="transparent" icon-start="sliders-horizontal" scale="s" aria-controls="settings-shell" aria-expanded="false" data-i18n="Map options">Map options</calcite-button>
+    </div>
+  </header>
+  <calcite-shell-panel id="sidebar" slot="panel-start" resizable>
+    <calcite-flow id="directory-flow">
+      <calcite-flow-item id="directory-panel" heading="Directory" data-i18n-heading="Directory" selected>
+        <calcite-chip id="result-count" slot="header-actions-end" scale="s" label="Loading communities…" data-i18n-label="Loading communities…">—</calcite-chip>
+        <div class="directory-tools">
+          <calcite-input id="search" type="search" max-length="500" icon="search" placeholder="Search by name, place, or topic" data-i18n-placeholder="Search by name, place, or topic" label="Search communities" data-i18n-label="Search communities" clearable>
+            <calcite-button id="filters-toggle" slot="action" icon-start="filter" appearance="outline" kind="neutral" label="Show filters" data-i18n-label="Show filters" aria-controls="filters" aria-expanded="false"></calcite-button>
+          </calcite-input>
+          <calcite-block id="filters" collapsible hidden heading="Filters" data-i18n-heading="Filters"><calcite-label><span data-i18n="Type">Type</span><calcite-select id="category" label="Type" data-i18n-label="Type"><calcite-option value="" data-i18n="All types" >All types</calcite-option></calcite-select></calcite-label><calcite-label><span data-i18n="Status">Status</span><calcite-select id="status" label="Status" data-i18n-label="Status"><calcite-option value="" data-i18n="All statuses" >All statuses</calcite-option><calcite-option value="active" data-i18n="Active" selected>Active</calcite-option><calcite-option value="inactive" data-i18n="Inactive" >Inactive</calcite-option><calcite-option value="unknown" data-i18n="Unconfirmed" >Unconfirmed</calcite-option></calcite-select></calcite-label><calcite-label><span data-i18n="Autonomous community">Autonomous community</span><calcite-select id="territory" label="Autonomous community" data-i18n-label="Autonomous community"><calcite-option value="" data-i18n="All of Spain" >All of Spain</calcite-option></calcite-select></calcite-label><div id="province-field" hidden><calcite-label><span data-i18n="Province">Province</span><calcite-select id="province" label="Province" data-i18n-label="Province"><calcite-option value="" data-i18n="All provinces" >All provinces</calcite-option></calcite-select></calcite-label></div><calcite-label layout="inline"><calcite-switch id="visible-results" checked></calcite-switch><span data-i18n="Only the visible area">Only the visible area</span></calcite-label><calcite-button id="apply-filters" width="full" data-i18n="Show results">Show results</calcite-button><calcite-button id="reset" appearance="transparent" width="full" data-i18n="Clear filters">Clear filters</calcite-button></calcite-block>
+          <div id="group-scope" class="group-scope" hidden><span id="focused-group-label"></span><calcite-button id="clear-group" appearance="transparent" scale="s" icon-start="x" data-i18n="All results">All results</calcite-button></div>
+        </div>
+        <section id="explore" class="directory" tabindex="-1" aria-label="Directory" data-i18n-aria-label="Directory">
+          <div id="loading-message" role="status" data-i18n="Loading communities…">Loading communities…</div>
+          <div id="results" class="results" role="group" aria-label="Directory" data-i18n-aria-label="Directory"></div>
+          <div class="pagination"><calcite-button id="previous" appearance="transparent" scale="s" data-i18n="Previous">Previous</calcite-button><span id="page-info" aria-live="polite"></span><calcite-button id="next" appearance="transparent" scale="s" data-i18n="Next">Next</calcite-button></div>
+        </section>
+        <footer class="sidebar-footer">
+          <span data-i18n="Data">Data</span>: <a href="https://directory.communitybuilders.dev/" target="_blank" rel="noopener noreferrer">Community Builders</a> · CC BY 4.0<br/>
+          <span data-i18n="Boundaries">Boundaries</span>: © Instituto Geográfico Nacional de España · Living Atlas<br/>
+          <a href="./data/ATTRIBUTION.md" target="_blank" rel="noopener noreferrer" data-i18n="Sources and terms of use">Sources and terms of use</a>
+          <p><span data-i18n="Code created with AI using OpenAI Codex. Inspired by">Code created with AI using OpenAI Codex. Inspired by</span> <a href="https://github.com/patrickarlt/pftp-who-is-running-2020" target="_blank" rel="noopener noreferrer">People For the People (2020)</a>, <span data-i18n="by Patrick Arlt.">by Patrick Arlt.</span> <a href="https://www.youtube.com/watch?v=0AlQItdHBy4&amp;t=1184s" target="_blank" rel="noopener noreferrer" data-i18n="Watch recording from 19:44">Watch recording from 19:44</a>.</p>
+        </footer>
+      </calcite-flow-item>
+      <calcite-flow-item id="details" heading="Community"><div id="details-content" class="details-content"></div></calcite-flow-item>
+    </calcite-flow>
+  </calcite-shell-panel>
+  <calcite-shell-panel id="settings-shell" slot="panel-end" collapsed>
+    <calcite-panel id="settings" heading="Map options" data-i18n-heading="Map options" closable><div class="settings-content"><calcite-label><span data-i18n="Datasets">Datasets</span><calcite-select id="dataset" label="Datasets" data-i18n-label="Datasets"><calcite-option value="communities" data-i18n="Spain’s communities" >Spain’s communities</calcite-option><calcite-option value="reference" data-i18n="Reference cases" >Reference cases</calcite-option><calcite-option value="stress" data-i18n="Stress test · 470 groups / 1,283 items" >Stress test · 470 groups / 1,283 items</calcite-option></calcite-select></calcite-label><calcite-label><span data-i18n="Group by">Group by</span><calcite-select id="grouping" label="Group by" data-i18n-label="Group by"><calcite-option value="auto" data-i18n="Automatic by zoom" >Automatic by zoom</calcite-option><calcite-option value="region" data-i18n="Autonomous community" >Autonomous community</calcite-option><calcite-option value="locality" data-i18n="Locality" >Locality</calcite-option></calcite-select></calcite-label><calcite-label><span data-i18n="Administrative boundaries">Administrative boundaries</span><calcite-select id="boundaries" label="Administrative boundaries" data-i18n-label="Administrative boundaries"><calcite-option value="none" data-i18n="Hidden" >Hidden</calcite-option><calcite-option value="auto" data-i18n="Automatic" >Automatic</calcite-option><calcite-option value="regions" data-i18n="Autonomous communities" >Autonomous communities</calcite-option><calcite-option value="provinces" data-i18n="Provinces" >Provinces</calcite-option><calcite-option value="municipalities" data-i18n="Municipalities" >Municipalities</calcite-option></calcite-select></calcite-label><p id="boundary-hint" class="muted"></p><calcite-label><span data-i18n="Boundary click">Boundary click</span><calcite-select id="boundary-click" label="Boundary click" data-i18n-label="Boundary click"><calcite-option value="none" data-i18n="No action" >No action</calcite-option><calcite-option value="inspect" data-i18n="Inspect name" >Inspect name</calcite-option><calcite-option value="select" data-i18n="Emphasize territory" >Emphasize territory</calcite-option></calcite-select></calcite-label><calcite-label layout="inline"><calcite-switch id="boundary-names" ></calcite-switch><span data-i18n="Map labels">Map labels</span></calcite-label><calcite-label layout="inline"><calcite-switch id="smooth-wheel" checked></calcite-switch><span data-i18n="Smooth mouse wheel">Smooth mouse wheel</span></calcite-label><calcite-label><span data-i18n="Zoom input">Zoom input</span><calcite-select id="wheel-input" label="Zoom input" data-i18n-label="Zoom input"><calcite-option value="auto" data-i18n="Automatic detection" >Automatic detection</calcite-option><calcite-option value="mouse" data-i18n="Mouse · smooth" >Mouse · smooth</calcite-option><calcite-option value="trackpad" data-i18n="Trackpad · native" >Trackpad · native</calcite-option></calcite-select></calcite-label><calcite-label><span data-i18n="Representation">Representation</span><calcite-select id="variant" label="Representation" data-i18n-label="Representation"><calcite-option value="mixed" data-i18n="Adaptive / example profile" >Adaptive / example profile</calcite-option><calcite-option value="images" data-i18n="Images" >Images</calcite-option><calcite-option value="dots" data-i18n="Dots" >Dots</calcite-option></calcite-select></calcite-label><calcite-label layout="inline"><calcite-switch id="visibility" checked></calcite-switch><span data-i18n="Show layer">Show layer</span></calcite-label><calcite-label><span data-i18n="Opacity">Opacity</span><calcite-slider id="opacity" min="0" max="100" value="100" label="Opacity" data-i18n-label="Opacity" label-handles></calcite-slider></calcite-label><calcite-button id="reattach" appearance="outline" width="full" data-i18n="Remove layer">Remove layer</calcite-button></div></calcite-panel>
+  </calcite-shell-panel>
+  <main class="map-workspace" aria-label="Interactive tech community map" data-i18n-aria-label="Interactive tech community map">
+    <div class="map-frame"><arcgis-map id="map" center="-4,39.5" zoom="5.5"><arcgis-zoom slot="top-left"></arcgis-zoom><arcgis-compass slot="top-left"></arcgis-compass></arcgis-map>
+      <div id="map-notice" class="map-notice" role="status" hidden></div><div id="place-info" class="place-info" role="status" hidden></div>
+      <span id="map-tooltip-anchor" class="map-tooltip-anchor" aria-hidden="true"></span><calcite-tooltip id="map-tooltip" reference-element="map-tooltip-anchor" placement="top" offset-distance="18" overlay-positioning="fixed" close-on-click></calcite-tooltip>
+      <div class="map-caption"><span id="zoom-label"></span></div>
+    </div>
+    <footer class="map-footer"><div id="map-status" role="status"><strong id="level-label"></strong><span id="map-count"></span></div><div id="legend"></div><span class="map-explanation" data-i18n="Symbols represent areas of activity, not exact venues.">Symbols represent areas of activity, not exact venues.</span></footer>
+  </main>
+</calcite-shell><script type="module" src="/src/main.ts"></script>
+</body></html>

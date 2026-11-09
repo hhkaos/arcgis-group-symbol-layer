@@ -203,6 +203,6 @@ Repository-relative files:
 - [Recorded timing/delta fixtures](../src/demo/fixtures/wheel-input.json)
 - [Developer configuration](../demo.config.ts)
 
-To compare in this application, run `npm ci` and `npm run dev`, then use **Opciones → Suavizar rueda del ratón** and **Dispositivo de zoom**. Capture one device at a time without changing other navigation settings. The map's data and API credentials are not included in the diagnostic report.
+To compare in this application, run `npm ci` and `npm run dev`, then use **Map options → Smooth mouse wheel** and **Zoom input**. Capture one device at a time without changing other navigation settings. The map's data and API credentials are not included in the diagnostic report.
 
 The existing public interaction entry point is documented under [MapView events and navigation](https://developers.arcgis.com/javascript/latest/references/core/views/MapView/). The request is to make the smoother behavior available through the SDK's own view navigation system, using these observations as one concrete case for evaluation.

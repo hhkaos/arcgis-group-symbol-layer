@@ -10,7 +10,13 @@ import "@esri/calcite-components/components/calcite-select";
 import "@esri/calcite-components/components/calcite-option";
 import "@esri/calcite-components/components/calcite-switch";
 import "@esri/calcite-components/components/calcite-slider";
-import "@esri/calcite-components/components/calcite-dialog";
+import "@esri/calcite-components/components/calcite-shell-panel";
+import "@esri/calcite-components/components/calcite-panel";
+import "@esri/calcite-components/components/calcite-flow";
+import "@esri/calcite-components/components/calcite-flow-item";
+import "@esri/calcite-components/components/calcite-block";
+import "@esri/calcite-components/components/calcite-action";
+import "@esri/calcite-components/components/calcite-chip";
 import "@esri/calcite-components/components/calcite-tooltip";
 import ArcGISMap from "@arcgis/core/Map.js";
 import Basemap from "@arcgis/core/Basemap.js";
@@ -40,34 +46,47 @@ import { resolveDemoOptions } from "./demo/config";
 import type { BoundaryMode, BoundaryClickAction, DemoOptionsInput } from "./demo/config";
 import { SmoothWheelZoom } from "./demo/SmoothWheelZoom";
 import { ResultList } from "./demo/ResultList";
+import { language, localize, setLanguage, t } from "./demo/i18n";
+import { openDirectory, setupInterface, showDetails } from "./demo/interface";
+import { readSharedState, restoredScale, UrlHistory } from "./demo/urlState";
+import type { SharedState } from "./demo/urlState";
 
+const initialSharedState = readSharedState(new URL(location.href), language());
+setLanguage(initialSharedState.language);
 let options = resolveDemoOptions(initialOptions);
+let urlHistory: UrlHistory | undefined;
+let navigationEpoch = 0;
+let filterNavigation = false;
+let restoreEpoch = 0;
 let wheelNavigation: SmoothWheelZoom | undefined;
 let directoryOptionsChanged: (() => void) | undefined;
 let presentationOptionsChanged: (() => void) | undefined;
 
-intl.setLocale("es");
+intl.setLocale(language());
+localize();
+document.title = t("SPAIN’S TECH COMMUNITY ECOSYSTEM");
 const apiKey = import.meta.env.VITE_ARCGIS_API_KEY?.trim();
 if (apiKey) esriConfig.apiKey = apiKey;
 const mapElement = document.querySelector("arcgis-map")!;
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const select = (id: string) => $<HTMLCalciteSelectElement>(id);
 const resultList = new ResultList($("results"));
-for (const [id, label] of Object.entries({ category: "Tipo de comunidad", status: "Estado de la comunidad", territory: "Territorio destacado", group: "Grupo para inspeccionar", dataset: "Conjunto de datos", grouping: "Nivel de agrupación", variant: "Representación de los grupos", boundaries: "Límites administrativos" })) select(id).label = label;
+
 const base = import.meta.env.BASE_URL;
 const colors: Record<string, string> = { "tech-meetup": "#167c72", conference: "#d69a36", hacklab: "#6d70b6", "collaborative-group": "#3c83ad", "umbrella-org": "#bc6b6b" };
-const labels: Record<string, string> = { "tech-meetup": "Meetup", conference: "Conferencia", hacklab: "Hacklab", "collaborative-group": "Grupo colaborativo", "umbrella-org": "Organización", "meta-community": "Red de comunidades", "mutual-aid": "Apoyo mutuo", unknown: "Sin categoría" };
-const layer = new GroupSymbolLayer({ title: "Comunidades", appearance: { colors, imageSize: 32, detailZoom: 9 } });
+const categoryNames: Record<string, string> = { "tech-meetup": "Meetup", conference: "Conference", hacklab: "Hacklab", "collaborative-group": "Collaborative group", "umbrella-org": "Organization", "meta-community": "Community network", "mutual-aid": "Mutual aid", unknown: "Uncategorized" };
+const categoryLabel = (category: string) => t(categoryNames[category] ?? category);
+const layer = new GroupSymbolLayer({ title: "Tech communities", appearance: { colors, imageSize: 32, detailZoom: 9 } });
 const regionSymbol = new SimpleFillSymbol({ color: [247, 247, 240, 0.2], outline: { color: [83, 114, 100, 0.9], width: 1.2 } });
 const territories = new GeoJSONLayer({
-  url: `${base}data/territories.geojson`, title: "Comunidades autónomas", objectIdField: "objectid", outFields: ["*"],
+  url: `${base}data/territories.geojson`, title: "Autonomous communities", objectIdField: "objectid", outFields: ["*"],
   popupEnabled: false, visible: options.boundaries.mode !== "none",
   renderer: { type: "simple", symbol: regionSymbol },
   labelingInfo: [{ labelExpressionInfo: { expression: "$feature.name" }, minScale: 12000000, symbol: { type: "text", color: "#526c5e", haloColor: "#ffffff", haloSize: 1.5, font: { size: 9, family: "Arial" } } }],
 });
 const adminBase = "https://services1.arcgis.com/nCKYwcSONQTkPA4K/arcgis/rest/services/";
-const provinces = new FeatureLayer({ url: `${adminBase}Prov/FeatureServer/0`, title: "Provincias", visible: false, popupEnabled: false, outFields: ["NAMEUNIT", "NATCODE", "CODNUT2"], renderer: { type: "simple", symbol: { type: "simple-fill", color: [255,255,255,0], outline: { color: "#81907e", width: 0.9, style: "dash" } } }, labelingInfo: [{ labelExpressionInfo: { expression: "$feature.NAMEUNIT" }, symbol: { type: "text", color: "#526c5e", haloColor: "#fff", haloSize: 1.5, font: { size: 9 } } }] });
-const municipalities = new FeatureLayer({ url: `${adminBase}muni/FeatureServer/0`, title: "Municipios", visible: false, minScale: 2000000, popupEnabled: false, outFields: ["NAMEUNIT", "NATCODE", "CODNUT2", "codine"], renderer: { type: "simple", symbol: { type: "simple-fill", color: [255,255,255,0], outline: { color: "#83998b", width: 0.65 } } }, labelingInfo: [{ minScale: 350000, labelExpressionInfo: { expression: "$feature.NAMEUNIT" }, symbol: { type: "text", color: "#3b5b4b", haloColor: "#fff", haloSize: 1.5, font: { size: 9 } } }] });
+const provinces = new FeatureLayer({ url: `${adminBase}Prov/FeatureServer/0`, title: "Provinces", visible: false, popupEnabled: false, outFields: ["NAMEUNIT", "NATCODE", "CODNUT2"], renderer: { type: "simple", symbol: { type: "simple-fill", color: [255,255,255,0], outline: { color: "#81907e", width: 0.9, style: "dash" } } }, labelingInfo: [{ labelExpressionInfo: { expression: "$feature.NAMEUNIT" }, symbol: { type: "text", color: "#526c5e", haloColor: "#fff", haloSize: 1.5, font: { size: 9 } } }] });
+const municipalities = new FeatureLayer({ url: `${adminBase}muni/FeatureServer/0`, title: "Municipalities", visible: false, minScale: 2000000, popupEnabled: false, outFields: ["NAMEUNIT", "NATCODE", "CODNUT2", "codine"], renderer: { type: "simple", symbol: { type: "simple-fill", color: [255,255,255,0], outline: { color: "#83998b", width: 0.65 } } }, labelingInfo: [{ minScale: 350000, labelExpressionInfo: { expression: "$feature.NAMEUNIT" }, symbol: { type: "text", color: "#3b5b4b", haloColor: "#fff", haloSize: 1.5, font: { size: 9 } } }] });
 function updateBoundaries(): void {
   const mode = options.boundaries.mode;
   const names = options.boundaries.labels;
@@ -75,7 +94,7 @@ function updateBoundaries(): void {
   territories.visible = mode !== "none";
   provinces.visible = mode === "provinces" || mode === "auto" && mapElement.zoom >= 6.5 && mapElement.zoom < 8.5;
   municipalities.visible = mode === "municipalities" || mode === "auto" && mapElement.zoom >= 8.5;
-  $("boundary-hint").textContent = mode === "none" ? "Los límites están ocultos. La agrupación territorial sigue disponible." : municipalities.visible && mapElement.scale > municipalities.minScale ? "Acércate para consultar los límites municipales." : options.boundaries.clickAction === "none" ? "El clic sobre los límites no realiza ninguna acción." : "Pulsa un límite para consultar su territorio.";
+  $("boundary-hint").textContent = t(mode === "none" ? "Boundaries are hidden; territorial grouping is still available." : municipalities.visible && mapElement.scale > municipalities.minScale ? "Zoom in to inspect municipal boundaries." : options.boundaries.clickAction === "none" ? "Boundary clicks have no action." : "Click a boundary to inspect its territory.");
 }
 function applyReferenceVisibility(): void {
   mapElement.map?.basemap?.referenceLayers.forEach(reference => { reference.visible = options.basemap.referenceLayersVisible; });
@@ -95,6 +114,7 @@ function configureDemo(input: DemoOptionsInput): void {
   updateBoundaries(); applyReferenceVisibility();
   if (previousScope !== options.directory.mapExtentOnly) directoryOptionsChanged?.();
   if (previousPresentation !== JSON.stringify(options.presentation)) presentationOptionsChanged?.();
+  urlHistory?.flush();
 }
 let lastHighlighted: string | undefined;
 reactiveUtils.watch(() => layer.revision, () => {
@@ -110,9 +130,9 @@ const referenceHandle = reactiveUtils.watch(() => mapElement.map?.basemap?.refer
   applyReferenceVisibility();
 }, { initial: true });
 mapElement.popupDisabled = true;
-mapElement.aria = { label: "Mapa interactivo de comunidades tecnológicas", description: "Usa el directorio para consultar y activar todos los resultados con teclado." };
+mapElement.aria = { label: t("Interactive tech community map"), description: t("Use the directory to inspect communities with the keyboard.") };
 const notice = $("map-notice");
-if (!apiKey) { notice.hidden = false; notice.textContent = "Configura la API key para cargar el mapa base gris claro. Los grupos siguen disponibles."; }
+if (!apiKey) { notice.hidden = false; notice.textContent = t("Configure an API key to load the light gray basemap. Community symbols remain available."); }
 configureDemo(options);
 
 let data: CommunityCollection = { type: "FeatureCollection", features: [] };
@@ -190,7 +210,6 @@ function setOptions(id: string, values: [string, string][], initial: string): vo
 function updateData(preserveDirectory = false): void {
   closeMapTooltip();
   previousDetail = undefined;
-  const started = performance.now();
   const variant = select("variant").value;
   groups = dataset === "communities" ? groupCommunities(data, level, variant !== "dots") : dataset === "reference" ? referenceGroups() : stressGroups();
   if (dataset === "communities") groups = groups.map(group => {
@@ -201,22 +220,47 @@ function updateData(preserveDirectory = false): void {
   layer.configure({ detailZoom: dataset === "communities" ? 9 : 4.5, dotSize: dataset === "communities" ? 8 : 12, gap: dataset === "communities" ? 3 : 5, maxColumns: dataset === "communities" ? 12 : 6, summarizeDots: dataset === "communities", showLabels: false, declutterCounts: dataset === "communities" });
   layer.setData(groups);
   const categories = [...new Set(dataset === "communities" ? data.features.map(f => f.properties.communityType || "unknown") : groups.flatMap(g => g.items.map(i => i.category)))].sort();
-  setOptions("category", categories.map(c => [c, labels[c] ?? c]), "Todos los tipos");
+  setOptions("category", categories.map(c => [c, categoryLabel(c)]), t("All types"));
   const regionNames = new Map<string, string>();
   for (const feature of data.features) if (feature.properties.regionId) regionNames.set(feature.properties.regionId, feature.properties.regionName!);
-  setOptions("territory", dataset === "communities" ? [...regionNames].sort((a, b) => a[1].localeCompare(b[1], "es")) : [...new Set(groups.map(g => g.territoryId!))].map(id => [id, id]), "Toda España");
+  setOptions("territory", dataset === "communities" ? [...regionNames].sort((a, b) => a[1].localeCompare(b[1], "es")) : [...new Set(groups.map(g => g.territoryId!))].map(id => [id, id]), t("All of Spain"));
+  updateProvinces();
   if (preserveDirectory) { layer.setFilter(lastFilter); scheduleMapRefresh(); }
-  else { focusedGroup = ""; select("group").value = ""; applyFilters(); }
-  $("level-label").textContent = dataset !== "communities" ? dataset === "reference" ? "Casos de referencia" : "Carga de validación" : level === "region" ? "Por comunidad autónoma" : "Por localidad";
-  $("timing").textContent = `Preparación: ${(performance.now() - started).toFixed(1)} ms · prototipo`;
+  else { focusedGroup = ""; applyFilters(); }
+  updateLevelLabel();
+}
+function updateLevelLabel(): void {
+  text("level-label", t(dataset !== "communities" ? dataset === "reference" ? "Reference cases" : "Validation workload" : level === "region" ? "By autonomous community" : "By locality"));
+}
+
+function updateProvinces(): void {
+  const region = select("territory").value;
+  const names = new Map<string, string>();
+  if (region && dataset === "communities") for (const f of data.features) {
+    const p = f.properties;
+    if (p.regionId === region && p.provinceId) names.set(p.provinceId, p.provinceName ?? p.provinceId);
+  }
+  setOptions("province", [...names].sort((a, b) => a[1].localeCompare(b[1], language())), t("All provinces"));
+  $("province-field").hidden = !region || dataset !== "communities";
+}
+function updateFilterSummary(): void {
+  const summary = [select("territory"), select("province"), select("status"), select("category")].filter(el => el.value).map(el => Array.from(el.querySelectorAll("calcite-option")).find(o => o.value === el.value)?.textContent?.trim()).filter(Boolean);
+  $<HTMLCalciteBlockElement>("filters").description = summary.join(" · ");
 }
 
 function applyFilters(): void {
   clearTimeout(mapRefreshTimer);
   closeMapTooltip();
   const search = normalize($<HTMLCalciteInputElement>("search").value), category = select("category").value, status = select("status").value;
-  const statusById = new Map(data.features.map(f => [f.properties.sourceId, f.properties.status]));
-  lastFilter = item => (!category || item.category === category) && (!status || dataset !== "communities" || statusById.get(item.sourceId!) === status) && (!search || normalize(`${item.label} ${item.description ?? ""}`).includes(search));
+  const propertiesById = new Map(data.features.map(f => [f.properties.sourceId, f.properties]));
+  const region = select("territory").value, province = select("province").value;
+  lastFilter = item => {
+    const p = propertiesById.get(item.sourceId!);
+    return (!category || item.category === category) && (!status || dataset !== "communities" || p?.status === status)
+      && (dataset !== "communities" || (!region || p?.regionId === region) && (!province || p?.provinceId === province))
+      && (!search || normalize(`${item.label} ${item.description ?? ""}`).includes(search));
+  };
+  updateFilterSummary();
   applyAdaptivePresentation();
   layer.setFilter(lastFilter); page = 0;
   refreshResults(true);
@@ -240,7 +284,7 @@ function results(): { prepared: PreparedGroup[]; items: Result[] } {
   const items: Result[] = relevant.flatMap(g => g.matching.map(item => ({ group: g, item })));
   if (!options.directory.mapExtentOnly && dataset === "communities" && !selection && (!focusedGroup || focusedGroup === "unmapped")) {
     if (focusedGroup === "unmapped") items.length = 0;
-    for (const f of data.features) if ((!f.geometry || !f.properties.displayOnMap) && (!lastFilter || lastFilter(communityItem(f.properties), { id: "unmapped", label: "Sin representación en el mapa", items: [], variant: "images", anchor: { x: 0, y: 0, wkid: 4326 } }))) items.push({ item: communityItem(f.properties), unmapped: true });
+    for (const f of data.features) if ((!f.geometry || !f.properties.displayOnMap) && (!lastFilter || lastFilter(communityItem(f.properties), { id: "unmapped", label: t("Not shown on the map"), items: [], variant: "images", anchor: { x: 0, y: 0, wkid: 4326 } }))) items.push({ item: communityItem(f.properties), unmapped: true });
   }
   items.sort((a, b) => resultCollator.compare(a.item.label, b.item.label) || resultKey(a).localeCompare(resultKey(b)));
   return { prepared, items };
@@ -249,64 +293,54 @@ function results(): { prepared: PreparedGroup[]; items: Result[] } {
 function refreshResults(updateGroupOptions = false): void {
   if (options.directory.mapExtentOnly && !ready) return;
   let { prepared, items } = results();
-  if (updateGroupOptions) {
-    const previousGroup = focusedGroup;
-    const territory = select("territory").value;
-    setOptions("group", [...prepared.filter(g => !territory || g.group.territoryId === territory).map(g => [g.group.id, `${g.group.label} (${g.counts.matching})`] as [string, string]), ...(dataset === "communities" && !territory && !options.directory.mapExtentOnly ? [["unmapped", "Sin representación en el mapa"] as [string, string]] : [])], "Todos los grupos");
-    focusedGroup = select("group").value;
-    if (focusedGroup !== previousGroup) items = results().items;
-  }
+  if (updateGroupOptions && focusedGroup && !prepared.some(g => g.group.id === focusedGroup)) { focusedGroup = ""; items = results().items; }
+  $("group-scope").hidden = !focusedGroup;
+  text("focused-group-label", prepared.find(g => g.group.id === focusedGroup)?.group.label ?? "");
+  $("loading-message").hidden = true;
   const pages = Math.max(1, Math.ceil(items.length / pageSize)); page = Math.min(page, pages - 1);
   text("result-count", String(items.length));
-  const matching = prepared.reduce((sum, g) => sum + g.counts.matching, 0), hidden = prepared.reduce((sum, g) => sum + g.counts.hidden, 0);
-  text("map-count", `${prepared.length} grupos${options.directory.mapExtentOnly ? " en vista" : ""} · ${matching} comunidades`);
-  const target = prepared.find(g => g.group.id === focusedGroup);
-  text("result-context", target ? `${target.counts.total} en el grupo · ${target.counts.matching} coinciden · ${target.counts.displayed} visibles · ${target.counts.hidden} resumidas` : `${options.directory.mapExtentOnly ? "Resultados de los grupos en el área visible. " : ""}${hidden} coincidencias resumidas; disponibles en el directorio.`);
+  $<HTMLCalciteChipElement>("result-count").label = t(items.length === 1 ? "1 community" : "{count} communities", { count: items.length });
+  const matching = prepared.reduce((sum, g) => sum + g.counts.matching, 0);
+  text("map-count", t(options.directory.mapExtentOnly ? "{groups} groups in view · {items} communities" : "{groups} groups · {items} communities", { groups: prepared.length, items: matching }));
+  updateLevelLabel();
   resultList.render(items.slice(page * pageSize, (page + 1) * pageSize).map(result => ({
     key: resultKey(result), label: result.item.label, image: result.item.image,
-    description: `${labels[result.item.category] ?? result.item.category} · ${result.group?.group.label ?? "Sin representación en el mapa"}`,
+    description: `${categoryLabel(result.item.category)} · ${result.group?.group.label ?? t("Not shown on the map")}`,
     activate: () => showItem(result.item, result.group),
-  })), options.directory.mapExtentOnly ? "No hay coincidencias en esta área. Mueve el mapa o desactiva «Solo el área visible»." : "No hay coincidencias. Prueba otro término o limpia los filtros.");
+  })), t(options.directory.mapExtentOnly ? "No matches in this area. Move the map or turn off “Only the visible area”." : "No matches. Try another term or clear the filters."));
   text("page-info", `${page + 1} / ${pages}`);
   $<HTMLCalciteButtonElement>("previous").disabled = page === 0;
   $<HTMLCalciteButtonElement>("next").disabled = page >= pages - 1;
+  urlHistory?.schedule();
   const itemGroups = prepared.filter(g => g.counts.displayed > 0);
   const hasCounts = prepared.some(g => g.group.presentation === "count");
   const categories = [...new Set(itemGroups.flatMap(g => g.matching.map(i => i.category)))].slice(0, 4);
-  const signature = JSON.stringify([hasCounts, categories]);
+  const signature = JSON.stringify([language(), hasCounts, categories]);
   if (signature === legendSignature) return;
   legendSignature = signature;
   const legend = $("legend"); legend.replaceChildren();
-  if (hasCounts) { const note = document.createElement("span"); note.className = "legend-item"; note.textContent = "N = comunidades que coinciden"; legend.append(note); }
+  if (hasCounts) { const note = document.createElement("span"); note.className = "legend-item"; note.textContent = t("N = matching communities"); legend.append(note); }
   for (const category of categories) {
     const item = document.createElement("span"), dot = document.createElement("span"); item.className = "legend-item"; dot.className = "legend-dot"; dot.style.background = colors[category] ?? "#64748b";
-    item.append(dot, document.createTextNode(labels[category] ?? category)); legend.append(item);
+    item.append(dot, document.createTextNode(categoryLabel(category))); legend.append(item);
   }
 }
 
 function showItem(item: GroupItem, prepared?: PreparedGroup): void {
   closeMapTooltip();
   if (prepared) { if (options.activation.emphasizeOnItemClick) layer.selectTerritory(prepared.group.territoryId); placeInfo(prepared.group.label, true); }
-  const dialog = $<HTMLCalciteDialogElement>("details"); dialog.heading = item.label;
-  const container = $("details-content"); container.replaceChildren();
-  const url = safeUrl(item.image);
-  if (url) { const img = document.createElement("img"); img.className = "detail-image"; img.alt = item.label; img.src = url; img.onerror = () => img.remove(); container.append(img); }
-  const meta = document.createElement("p"); meta.className = "detail-meta"; meta.textContent = `${labels[item.category] ?? item.category} · ${prepared?.group.label ?? "Sin representación en el mapa"}`;
-  const description = document.createElement("p"); description.textContent = item.description ?? "Sin descripción adicional.";
-  container.append(meta, description);
-  if (prepared) { const identity = document.createElement("p"); identity.className = "muted"; identity.textContent = `Grupo: ${prepared.group.id} · Elemento: ${item.id}${item.sourceId ? ` · Origen: ${item.sourceId}` : ""}`; container.append(identity); }
-  const linkUrl = safeUrl(item.url);
-  if (linkUrl) { const link = document.createElement("a"); link.href = linkUrl; link.target = "_blank"; link.rel = "noopener noreferrer"; link.textContent = "Visitar la comunidad ↗"; container.append(link); }
-  dialog.open = true;
+  showDetails(item, prepared, categoryNames[item.category] ?? item.category, dataset === "communities" ? data.features.find(f => f.properties.sourceId === item.sourceId)?.properties.status : undefined);
 }
 
 function activate(event: Activation): void {
   closeMapTooltip();
   if (event.type === "item") { showItem(event.item, { group: event.group, counts: event.counts, matching: [], cells: [] }); return; }
-  focusedGroup = event.groupId; select("group").value = focusedGroup; page = 0;
+  focusedGroup = event.groupId; page = 0;
+  openDirectory();
+  $<HTMLCalciteFlowItemElement>("details").selected = false;
+  $<HTMLCalciteFlowItemElement>("directory-panel").selected = true;
   placeInfo(event.group.label, true);
   if (options.activation.emphasizeOnGroupAction) layer.selectTerritory(event.group.territoryId);
-  select("territory").value = event.group.territoryId ?? "";
   refreshResults();
   $("explore").focus();
   if (event.group.presentation === "count") {
@@ -329,57 +363,72 @@ function handleNavigation(error: unknown): void {
   if (!isAbortError(error) && (error as { name?: string } | null)?.name !== "view:goto-interrupted") console.error(error);
 }
 
-$("search").addEventListener("calciteInputInput", applyFilters);
-for (const id of ["category", "status"]) $(id).addEventListener("calciteSelectChange", applyFilters);
-$("group").addEventListener("calciteSelectChange", () => {
-  focusedGroup = select("group").value;
-  const group = groups.find(g => g.id === focusedGroup);
-  if (options.activation.emphasizeOnGroupAction) layer.selectTerritory(group?.territoryId ?? (select("territory").value || undefined));
-  page = 0; refreshResults();
-  placeInfo(group?.label ?? "", true);
+$("search").addEventListener("calciteInputInput", () => { applyFilters(); urlHistory?.updateSearch(); });
+$("search").addEventListener("focusout", event => {
+  if (!(event.relatedTarget instanceof Node) || !$("search").contains(event.relatedTarget)) urlHistory?.finishSearch();
 });
+$("filters-toggle").addEventListener("click", () => urlHistory?.finishSearch());
+$("search").addEventListener("keydown", event => { if (event.key === "Enter" && event.composedPath()[0] instanceof HTMLInputElement) { applyFilters(); urlHistory?.finishSearch(); urlHistory?.flush(); } });
+$("apply-filters").addEventListener("click", () => { urlHistory?.finishSearch(); urlHistory?.flush(); });
+for (const id of ["category", "status"]) $(id).addEventListener("calciteSelectChange", () => { urlHistory?.finishSearch(); applyFilters(); urlHistory?.flush(); });
+$("clear-group").addEventListener("click", () => { focusedGroup = ""; page = 0; refreshResults(); });
 $("boundaries").addEventListener("calciteSelectChange", () => configureDemo({ boundaries: { mode: select("boundaries").value as BoundaryMode } }));
 $("boundary-names").addEventListener("calciteSwitchChange", () => configureDemo({ boundaries: { labels: $<HTMLCalciteSwitchElement>("boundary-names").checked } }));
 $("boundary-click").addEventListener("calciteSelectChange", () => configureDemo({ boundaries: { clickAction: select("boundary-click").value as BoundaryClickAction } }));
 $("smooth-wheel").addEventListener("calciteSwitchChange", () => configureDemo({ navigation: { smoothWheelZoom: $<HTMLCalciteSwitchElement>("smooth-wheel").checked } }));
 $("wheel-input").addEventListener("calciteSelectChange", () => configureDemo({ navigation: { inputMode: select("wheel-input").value as "auto" | "mouse" | "trackpad" } }));
 $("visible-results").addEventListener("calciteSwitchChange", () => configureDemo({ directory: { mapExtentOnly: $<HTMLCalciteSwitchElement>("visible-results").checked } }));
-$("territory").addEventListener("calciteSelectChange", async () => {
+async function withFilterNavigation(work: (current: () => boolean) => Promise<void>): Promise<void> {
+  const epoch = ++navigationEpoch;
+  filterNavigation = true;
+  try { await work(() => epoch === navigationEpoch); }
+  catch (error) { handleNavigation(error); }
+  finally { if (epoch === navigationEpoch) { filterNavigation = false; urlHistory?.flush(); } }
+}
+$("territory").addEventListener("calciteSelectChange", () => void withFilterNavigation(async current => {
   const id = select("territory").value;
-  layer.selectTerritory(id || undefined); focusedGroup = ""; select("group").value = ""; page = 0; refreshResults(true);
+  layer.selectTerritory(); focusedGroup = ""; select("province").value = ""; updateProvinces(); applyFilters();
+  if (!id && ready && dataset === "communities") { await goHome(); return; }
   if (id && ready && dataset === "communities") {
-    const query = territories.createQuery(); query.where = "1=1";
-    const all = await territories.queryFeatures(query);
-    if (select("territory").value !== id || dataset !== "communities") return;
+    const all = await territories.queryFeatures(territories.createQuery());
+    if (!current() || select("territory").value !== id || select("province").value || dataset !== "communities") return;
     const feature = all.features.find(f => f.attributes.id === id);
     if (feature?.geometry) {
       wheelNavigation?.cancel();
       await mapElement.goTo({ target: feature.geometry.extent?.clone().expand(1.3) }, { animate: !matchMedia("(prefers-reduced-motion: reduce)").matches }).catch(handleNavigation);
     }
   }
-});
-$("dataset").addEventListener("calciteSelectChange", () => {
-  dataset = select("dataset").value; select("category").value = ""; select("status").value = dataset === "communities" ? "active" : ""; select("territory").value = "";
+}));
+$("province").addEventListener("calciteSelectChange", () => void withFilterNavigation(async () => {
+  focusedGroup = ""; applyFilters();
+  const id = select("province").value;
+  if (!id || !ready) return;
+  const coordinates = data.features.filter(f => f.geometry && f.properties.provinceId === id).map(f => f.geometry!.coordinates);
+  if (!coordinates.length) return;
+  const xs = coordinates.map(c => c[0]), ys = coordinates.map(c => c[1]);
+  const extent = new Extent({ xmin: Math.min(...xs) - 0.15, xmax: Math.max(...xs) + 0.15, ymin: Math.min(...ys) - 0.15, ymax: Math.max(...ys) + 0.15, spatialReference: SpatialReference.WGS84 });
+  wheelNavigation?.cancel();
+  await mapElement.goTo({ target: extent.expand(1.4) }, { animate: !matchMedia("(prefers-reduced-motion: reduce)").matches }).catch(handleNavigation);
+}));
+$("dataset").addEventListener("calciteSelectChange", () => void withFilterNavigation(async () => {
+  dataset = select("dataset").value; select("category").value = ""; select("status").value = dataset === "communities" ? "active" : ""; select("territory").value = ""; select("province").value = ""; updateProvinces();
   layer.selectTerritory(); placeInfo("", true);
-  updateData(); void goHome();
-});
+  updateData(); await goHome();
+}));
 $("variant").addEventListener("calciteSelectChange", () => updateData());
 $("grouping").addEventListener("calciteSelectChange", () => { grouping = select("grouping").value as "auto" | Grouping; level = resolveLevel(grouping, mapElement.zoom, level); updateData(); });
 $("visibility").addEventListener("calciteSwitchChange", () => { layer.visible = $<HTMLCalciteSwitchElement>("visibility").checked; });
 $("opacity").addEventListener("calciteSliderInput", () => { layer.opacity = Number($<HTMLCalciteSliderElement>("opacity").value) / 100; });
-$("settings-toggle").addEventListener("click", () => { const settings = $("settings"); settings.hidden = !settings.hidden; $("settings-toggle").setAttribute("aria-expanded", String(!settings.hidden)); });
-$("settings").addEventListener("keydown", e => { if (e.key === "Escape") { $("settings").hidden = true; $("settings-toggle").setAttribute("aria-expanded", "false"); $("settings-toggle").focus(); } });
 $("previous").addEventListener("click", () => { page--; refreshResults(); });
 $("next").addEventListener("click", () => { page++; refreshResults(); });
-$("home").addEventListener("click", () => void goHome());
 $("reset").addEventListener("click", () => {
   $<HTMLCalciteInputElement>("search").value = "";
-  for (const id of ["category", "status", "territory", "group"]) select(id).value = "";
-  focusedGroup = ""; layer.selectTerritory(); placeInfo("", true); applyFilters();
+  for (const id of ["category", "status", "territory", "province"]) select(id).value = "";
+  focusedGroup = ""; updateProvinces(); layer.selectTerritory(); placeInfo("", true); applyFilters(); urlHistory?.flush();
 });
 $("reattach").addEventListener("click", () => {
-  if (attached) { mapElement.map!.remove(layer); attached = false; $("reattach").textContent = "Volver a añadir capa"; }
-  else { mapElement.map!.add(layer); attached = true; $("reattach").textContent = "Retirar y volver a añadir capa"; }
+  if (attached) { mapElement.map!.remove(layer); attached = false; $("reattach").textContent = t("Add layer again"); }
+  else { mapElement.map!.add(layer); attached = true; $("reattach").textContent = t("Remove layer"); }
 });
 
 const abort = new AbortController();
@@ -387,14 +436,79 @@ window.addEventListener("pagehide", () => abort.abort(), { once: true });
 window.addEventListener("pagehide", () => referenceHandle.remove(), { once: true });
 window.addEventListener("pagehide", () => wheelNavigation?.destroy(), { once: true });
 window.addEventListener("pagehide", () => clearTimeout(mapRefreshTimer), { once: true });
+window.addEventListener("pagehide", () => urlHistory?.destroy(), { once: true });
+function captureSharedState(): SharedState {
+  const center = mapElement.view.center;
+  const point = center.spatialReference.isWGS84 ? center : webMercatorUtils.webMercatorToGeographic(center) as Point;
+  return {
+    language: language(), search: $<HTMLCalciteInputElement>("search").value, category: select("category").value,
+    status: select("status").value as SharedState["status"], region: select("territory").value,
+    province: select("province").value, group: focusedGroup, visibleOnly: options.directory.mapExtentOnly,
+    dataset: dataset as SharedState["dataset"], grouping, level, variant: select("variant").value as SharedState["variant"],
+    view: {
+      longitude: ((point.x + 180) % 360 + 360) % 360 - 180, latitude: point.y,
+      scale: mapElement.view.scale, rotation: mapElement.view.rotation,
+      width: mapElement.view.width, height: mapElement.view.height,
+    },
+  };
+}
+function restoreSelect(id: string, value: string): void {
+  const el = select(id);
+  el.value = [...el.querySelectorAll("calcite-option")].some(o => o.value === value) ? value : "";
+}
+async function restoreSharedState(state: SharedState): Promise<void> {
+  const epoch = ++restoreEpoch;
+  ++navigationEpoch; filterNavigation = false;
+  clearTimeout(mapRefreshTimer); wheelNavigation?.cancel(); closeMapTooltip();
+  changeLanguage(state.language);
+  dataset = state.dataset; select("dataset").value = dataset;
+  grouping = state.grouping; select("grouping").value = grouping; level = state.level;
+  select("variant").value = state.variant;
+  for (const id of ["category", "territory", "province"]) select(id).value = "";
+  updateData();
+  restoreSelect("category", state.category); restoreSelect("status", state.status);
+  restoreSelect("territory", state.region); updateProvinces(); restoreSelect("province", state.province);
+  $<HTMLCalciteInputElement>("search").value = state.search;
+  configureDemo({ directory: { mapExtentOnly: state.visibleOnly } });
+  layer.selectTerritory(); placeInfo("", true); applyFilters();
+  $<HTMLCalciteFlowItemElement>("details").selected = false;
+  $<HTMLCalciteFlowItemElement>("directory-panel").selected = true;
+  async function settleViewport(): Promise<boolean> {
+    let stable = 0, previousSize = "";
+    for (let i = 0; i < 40 && stable < 3; i++) {
+      await new Promise(resolve => setTimeout(resolve, 25));
+      if (epoch !== restoreEpoch) return false;
+      const width = mapElement.clientWidth, height = mapElement.clientHeight;
+      const size = `${width}:${height}`;
+      const matches = Math.abs(mapElement.view.width - width) <= 1 && Math.abs(mapElement.view.height - height) <= 1;
+      stable = matches && size === previousSize ? stable + 1 : 0; previousSize = size;
+    }
+    return epoch === restoreEpoch;
+  }
+  // Fitting may change the adaptive legend, which resizes the viewport again.
+  // Always refit from the original shared footprint, never from a previously fitted scale.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (state.view) {
+      if (!await settleViewport()) return;
+      await mapElement.goTo({ center: [state.view.longitude, state.view.latitude], scale: restoredScale(state.view, mapElement.view.width, mapElement.view.height), rotation: state.view.rotation }, { animate: false }).catch(handleNavigation);
+    }
+    if (epoch !== restoreEpoch) return;
+    level = resolveLevel(grouping, mapElement.zoom, state.level); updateData(true);
+    focusedGroup = groups.some(g => g.id === state.group) ? state.group : "";
+    page = 0; applyAdaptivePresentation(); refreshResults(true);
+    if (!state.view || !await settleViewport()) return;
+    const fittedScale = restoredScale(state.view, mapElement.view.width, mapElement.view.height);
+    if (Math.abs(mapElement.view.scale - fittedScale) < fittedScale * 1e-7) break;
+  }
+}
 async function start(): Promise<void> {
   const responses = await Promise.all(["communities.geojson", "territories.geojson", "municipalities.geojson"].map(file => fetch(`${base}data/${file}`, { signal: abort.signal })));
-  if (responses.some(response => !response.ok)) throw new Error("No se pudieron cargar las comunidades y sus territorios");
+  if (responses.some(response => !response.ok)) throw new Error(t("Could not load communities and territories"));
   [data, regionBoundaries, localBoundaries] = await Promise.all(responses.map(response => response.json()));
   updateData();
   await mapElement.viewOnReady(); ready = true;
-  await goHome();
-  updateData();
+  if (!initialSharedState.view) await goHome();
+  await restoreSharedState(initialSharedState);
   await mapElement.view.whenLayerView(layer);
   wheelNavigation = new SmoothWheelZoom(mapElement.view, options.navigation, active => {
     if (active) closeMapTooltip();
@@ -414,7 +528,7 @@ async function start(): Promise<void> {
     if (!stationary) closeMapTooltip();
     if (stationary) scheduleMapRefresh();
   });
-  reactiveUtils.watch(() => [mapElement.view.center.x, mapElement.view.center.y, mapElement.view.scale, mapElement.view.rotation, mapElement.view.width, mapElement.view.height], scheduleMapRefresh);
+  reactiveUtils.watch(() => [mapElement.view.center.x, mapElement.view.center.y, mapElement.view.scale, mapElement.view.rotation, mapElement.view.width, mapElement.view.height], () => { scheduleMapRefresh(); urlHistory?.schedule(); });
   directoryOptionsChanged = () => { page = 0; refreshResults(true); };
   presentationOptionsChanged = scheduleMapRefresh;
   // LayerView's immediate-click handles item/overflow first; only background clicks reach this handler.
@@ -428,7 +542,7 @@ async function start(): Promise<void> {
     if (territory?.type === "graphic" && dataset === "communities") {
       const id = territory.graphic.attributes.id as string;
       if (options.boundaries.clickAction === "select") {
-        select("territory").value = id; layer.selectTerritory(id); focusedGroup = ""; select("group").value = ""; page = 0; refreshResults();
+        select("territory").value = id; select("province").value = ""; updateProvinces(); layer.selectTerritory(id); focusedGroup = ""; applyFilters();
       }
       if (!local) placeInfo(territory.graphic.attributes.name, true);
     }
@@ -440,17 +554,17 @@ async function start(): Promise<void> {
     clearTimeout(hoverTimer);
     const target = { x: event.x, y: event.y };
     hoverTimer = setTimeout(async () => {
-    if (!mapElement.stationary || wheelNavigation?.active || $<HTMLCalciteDialogElement>("details").open) return;
+    if (!mapElement.stationary || wheelNavigation?.active) return;
     const epoch = tooltipEpoch;
     const hits = await mapElement.view.hitTest(target, { include: [layer, territories, provinces, municipalities] });
-    if (sequence !== hoverSequence || epoch !== tooltipEpoch || $<HTMLCalciteDialogElement>("details").open) return;
+    if (sequence !== hoverSequence || epoch !== tooltipEpoch) return;
     const groupHit = hits.results.find(hit => hit.type === "graphic" && hit.layer === layer);
     if (groupHit?.type === "graphic") {
       const group = groups.find(g => g.id === groupHit.graphic.attributes.groupId);
       placeInfo(group?.label ?? pinnedPlace);
       const item = group?.items.find(i => i.id === groupHit.graphic.attributes.itemId);
       const point = groupHit.graphic.geometry ? mapElement.view.toScreen(groupHit.graphic.geometry as Point) : target;
-      if (point && group) showMapTooltip(item?.label ?? `${group.label} · ${groupHit.graphic.attributes.matching} comunidades`, point.x, point.y);
+      if (point && group) showMapTooltip(item?.label ?? `${group.label} · ${t("{count} communities", {count: groupHit.graphic.attributes.matching})}`, point.x, point.y);
       return;
     }
     closeMapTooltip();
@@ -459,7 +573,20 @@ async function start(): Promise<void> {
     }, 65);
   });
   mapElement.view.on("pointer-leave", () => { hoverSequence++; clearTimeout(hoverTimer); closeMapTooltip(); placeInfo(pinnedPlace); });
+  urlHistory = new UrlHistory(captureSharedState, restoreSharedState, () => ready && mapElement.view.stationary && !wheelNavigation?.active && !filterNavigation);
   // Public demo API: fixed/automatic grouping and independent reusable layer.
   Object.assign(window, { groupDemo: { layer, mapElement, territories, provinces, municipalities, get wheelNavigation() { return wheelNavigation; }, configure: configureDemo, get options() { return structuredClone(options); }, setGrouping(mode: "auto" | Grouping) { select("grouping").value = mode; grouping = mode; level = resolveLevel(mode, mapElement.zoom, level); updateData(); }, get groups() { return groups; }, get data() { return data; } } });
 }
-start().catch(error => { if (abort.signal.aborted) return; console.error(error); notice.hidden = false; notice.textContent = `No se puede iniciar la demo: ${error instanceof Error ? error.message : String(error)}`; $("result-context").textContent = "No se han podido cargar los datos. Recarga para volver a intentarlo."; });
+const changeLanguage = setupInterface(() => {
+  intl.setLocale(language());
+  if (dataset !== "communities") updateData(true);
+  document.title = t("SPAIN’S TECH COMMUNITY ECOSYSTEM");
+  mapElement.aria = { label: t("Interactive tech community map"), description: t("Use the directory to inspect communities with the keyboard.") };
+  setOptions("category", [...new Set(dataset === "communities" ? data.features.map(f => f.properties.communityType || "unknown") : groups.flatMap(g => g.items.map(i => i.category)))].sort().map(c => [c, categoryLabel(c)]), t("All types"));
+  setOptions("territory", dataset === "communities" ? [...new Map(data.features.filter(f => f.properties.regionId).map(f => [f.properties.regionId!, f.properties.regionName!]))].sort((a,b)=>a[1].localeCompare(b[1],language())) : [], t("All of Spain"));
+  updateProvinces(); updateFilterSummary(); updateBoundaries(); refreshResults(true);
+  text("reattach", t(attached ? "Remove layer" : "Add layer again"));
+  if (!apiKey) notice.textContent = t("Configure an API key to load the light gray basemap. Community symbols remain available.");
+  urlHistory?.flush();
+});
+start().catch(error => { if (abort.signal.aborted) return; console.error(error); notice.hidden = false; notice.textContent = `${t("Unable to start the demo")}: ${error instanceof Error ? error.message : String(error)}`; $("loading-message").textContent = t("Data could not be loaded. Reload to try again."); });

@@ -12,6 +12,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   deploy:
+    timeout-minutes: 15
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -24,9 +25,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm run build
+      - name: Build demo
+        run: |
+          if [ -z "$VITE_ARCGIS_API_KEY" ]; then
+            echo "::error::Set the VITE_ARCGIS_API_KEY repository variable before deploying."
+            exit 1
+          fi
+          npm run build
         env:
-          VITE_ARCGIS_API_KEY: ${{ secrets.VITE_ARCGIS_API_KEY }}
+          VITE_ARCGIS_API_KEY: ${{ vars.VITE_ARCGIS_API_KEY }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
