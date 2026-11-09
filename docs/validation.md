@@ -115,8 +115,23 @@ The first heuristic passed all 23 mouse events to native handling and tried smoo
 
 A corrected simulated −4.000244-pixel mouse impulse produced 12 smoothing frames. Trackpad −1 followed by −133 stayed native. Explicit mouse mode smoothed −2 pixels over 12 frames. No console errors appeared. The user subsequently confirmed the physical interaction issue was resolved; detailed hardware, captures, and proposal are in [the SDK report](js-sdk-smooth-wheel-zoom-proposal.md). This is one tester's confirmation, not general hardware coverage.
 
+## Published GitHub Pages verification
+
+Verified November 9, 2026:
+
+- Public repository: [hhkaos/arcgis-group-symbol-layer](https://github.com/hhkaos/arcgis-group-symbol-layer).
+- Live site: [Spain’s Tech Community Ecosystem](https://www.rauljimenez.info/arcgis-group-symbol-layer/).
+- [Deployment workflow](https://github.com/hhkaos/arcgis-group-symbol-layer/actions/runs/42590443174) completed successfully for application commit `0aae6c7`, including installation, all 50 tests, build, artifact upload, and deployment.
+- GitHub Pages uses the Actions build type with HTTPS enforced. No project-level CNAME was set; the site inherits `www.rauljimenez.info` from the existing personal site.
+- `http://rauljimenez.info/arcgis-group-symbol-layer/?lang=es&q=Agile` redirected to the HTTPS `www` URL with its query intact and returned HTTP 200.
+- Production loaded 12 directory rows and 367 active mapped communities. Language/search URL state and browser Back were exercised on the deployed application.
+- The first basemap check exposed a referrer mismatch. After the owner updated `.env` with a new key allowing the HTTPS origin, the Actions repository variable was updated and the application rebuilt. The deployed bundle was checked against that value without printing it.
+- The final browser check showed the `arcgis/light-gray` basemap and its vector-tile base layer both loaded without layer errors; the reference layer remained hidden. A screenshot confirmed the actual basemap was rendered.
+
+The browser API key is deliberately supplied as a normal build-time Actions variable, not a secret. It is visible in the client bundle and protected through the configured service privileges/referrers. Local `.env` remains excluded from Git.
+
 ## Coverage limits
 
-Outstanding: Safari, Firefox, Edge, physical phones/tablets, screen readers, comprehensive touch, slow networks with data replacement, sustained memory measurements, and published GitHub Pages validation. Browser wheel input does not reliably identify physical devices; auto classification remains heuristic.
+Outstanding: Safari, Firefox, Edge, physical phones/tablets, screen readers, comprehensive touch, slow networks with data replacement, and sustained memory measurements. Browser wheel input does not reliably identify physical devices; auto classification remains heuristic.
 
 Printing, WebMap persistence, automatic ArcGIS legend, and 3D remain out of scope. Badge placement may exhaust its bounded search. Fitting uses simplified polygons and sampled cell contours rather than an exact packing guarantee.

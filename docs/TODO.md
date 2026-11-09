@@ -9,10 +9,8 @@
 - [x] Shareable URL and browser Back/Forward state restoration — 2026-11-09
 - [x] Fifty regression tests and application/library builds — 2026-11-09
 
-## Publication
-
-- [ ] Push the current application and enable GitHub Actions Pages deployment.
-- [ ] Verify the deployed application and basemap on the inherited custom-domain URL.
+- [x] Push the application and enable GitHub Actions Pages deployment — 2026-11-09
+- [x] Verify the published application and basemap on the inherited HTTPS custom-domain URL — 2026-11-09
 
 ## Remaining prototype validation
 

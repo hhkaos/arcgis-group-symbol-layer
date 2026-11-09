@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-11-09
+
 ### Added
 - Bilingual English/Spanish Calcite interface, persistent language selection, and nested non-modal community details.
 - Autonomous-community/province filters, compact search, collapsible directory and filter panels, and header map settings.
